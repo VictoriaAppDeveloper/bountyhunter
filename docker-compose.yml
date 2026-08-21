@@ -58,6 +58,33 @@ services:
     security_opt:
       - no-new-privileges:true
 
+  # Opt-in: `docker compose --profile tunnel up -d` exposes the frontend via
+  # a Cloudflare Quick Tunnel instead of (or alongside) the host port above --
+  # no domain, no signup, and the host's real IP is never reached directly
+  # (cloudflared only makes an outbound connection out to Cloudflare's edge).
+  # The generated https://*.trycloudflare.com URL is printed to this
+  # container's logs (`docker compose logs tunnel`) and changes if the
+  # container restarts -- there's no stable hostname without owning a domain
+  # and running a named tunnel instead. If you use this, firewall the host
+  # (e.g. Hetzner's Cloud Firewall) to drop inbound 80/443 -- the tunnel
+  # doesn't need them open, and leaving them open defeats the point.
+  tunnel:
+    image: cloudflare/cloudflared:2026.8.2
+    command: tunnel --no-autoupdate --url http://frontend:8080
+    networks:
+      - internal
+    depends_on:
+      frontend:
+        condition: service_healthy
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    profiles:
+      - tunnel
+
 networks:
   internal: {}
 

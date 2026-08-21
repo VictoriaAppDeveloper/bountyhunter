@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { db } from '../db/client.js'
 import { sourceStatus } from '../db/schema.js'
 import { applyPoll } from '../diff/engine.js'
-import { broadcast } from '../realtime/sse.js'
+import { broadcast } from '../realtime/ws.js'
 import type { SourceAdapter } from '../adapters/types.js'
 
 export function startPoller(adapters: SourceAdapter[]) {
@@ -33,7 +33,7 @@ async function runOnce(adapter: SourceAdapter) {
       .run()
 
     for (const change of changes) {
-      broadcast('program-change', {
+      broadcast({
         type: change.type,
         program: { ...change.program, chains: JSON.parse(change.program.chains) as string[] },
       })

@@ -1,5 +1,6 @@
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
+import websocket from '@fastify/websocket'
 import Fastify from 'fastify'
 import { adapters } from './adapters/index.js'
 import { config } from './config.js'
@@ -23,9 +24,9 @@ runMigrations()
 // instead of seeing every request as coming from nginx.
 const app = Fastify({ logger: true, trustProxy: true })
 
-// This is a JSON+SSE API, not an HTML app (the frontend's nginx serves and
-// CSPs the actual page) -- CSP/COEP/COOP here would only add noise, so only
-// the headers that matter for a pure API are kept on.
+// This is a JSON+WebSocket API, not an HTML app (the frontend's nginx serves
+// and CSPs the actual page) -- CSP/COEP/COOP here would only add noise, so
+// only the headers that matter for a pure API are kept on.
 await app.register(helmet, {
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
@@ -37,6 +38,8 @@ await app.register(helmet, {
 // tighter per-route limits below (translate, summarize) still apply on top
 // of this since Fastify merges route config over the global default.
 await app.register(rateLimit, { global: true, max: 300, timeWindow: '1 minute' })
+
+await app.register(websocket)
 
 await app.register(programsRoutes)
 await app.register(historyRoutes)

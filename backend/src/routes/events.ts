@@ -1,29 +1,26 @@
 import type { FastifyInstance } from 'fastify'
-import { addClient, removeClient } from '../realtime/sse.js'
+import { addClient, removeClient } from '../realtime/ws.js'
+
+const HEARTBEAT_MS = 25_000
 
 export async function eventsRoutes(app: FastifyInstance) {
-  app.get('/api/events', (req, reply) => {
-    reply.hijack()
-
-    const id = addClient(reply)
+  app.get('/api/events', { websocket: true }, (socket) => {
+    const id = addClient(socket)
     if (id === null) {
-      reply.raw.writeHead(503, { 'Retry-After': '30' })
-      reply.raw.end()
+      // 1013 ("Try Again Later") is the standard WS close code for a
+      // server-side capacity refusal -- the client's own reconnect-with-
+      // backoff (see frontend/src/api/stream.ts) handles the retry.
+      socket.close(1013, 'over capacity')
       return
     }
 
-    reply.raw.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive',
-    })
-    reply.raw.write(': connected\n\n')
-
+    // Proxies (and browsers) can drop a WS connection that goes quiet for
+    // too long -- a periodic ping keeps it alive between real broadcasts.
     const heartbeat = setInterval(() => {
-      reply.raw.write(': heartbeat\n\n')
-    }, 25_000)
+      if (socket.readyState === socket.OPEN) socket.ping()
+    }, HEARTBEAT_MS)
 
-    req.raw.on('close', () => {
+    socket.on('close', () => {
       clearInterval(heartbeat)
       removeClient(id)
     })
