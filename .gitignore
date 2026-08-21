@@ -43,11 +43,6 @@ __screenshots__/
 backend/data/*.db
 backend/data/*.db-*
 
-# unplugin-auto-import / unplugin-vue-components
-frontend/src/auto-imports.d.ts
-frontend/src/components.d.ts
-frontend/.eslintrc-auto-import.json
-
 # Secrets
 .env
 .env.*

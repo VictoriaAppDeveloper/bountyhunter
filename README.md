@@ -1,4 +1,4 @@
-# bountieshunter
+# Bounty Hunter
 
 Real-time monitor for web3 bug-bounty, audit-contest, and grant-bounty programs. Aggregates multiple platforms into one live dashboard: new programs, reward changes, and closures show up as they happen.
 
