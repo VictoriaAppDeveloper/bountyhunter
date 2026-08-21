@@ -92,6 +92,18 @@ jobs:
           ssh-keygen -lf /tmp/deploy_key || echo "ssh-keygen could not parse this as a private key at all"
           rm -f /tmp/deploy_key
 
+      # TEMPORARY -- raw TCP connectivity to port 22, no SSH involved at all.
+      # If this fails/times out, the connection is being dropped before it
+      # ever reaches sshd -- confirms a firewall (cloud-level or the host's
+      # own ufw/iptables) rather than an SSH-side config issue.
+      - name: Debug - raw TCP connectivity to DEPLOY_HOST:22
+        run: |
+          if timeout 8 bash -c 'cat < /dev/null > /dev/tcp/${{ secrets.DEPLOY_HOST }}/22'; then
+            echo "TCP connect to port 22 SUCCEEDED"
+          else
+            echo "TCP connect to port 22 FAILED/timed out -- blocked before reaching sshd, this is a firewall"
+          fi
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1
         with:
