@@ -71,6 +71,16 @@ docker compose up -d --build
   sustained production load. If you use it, firewall the host itself (e.g. Hetzner's Cloud Firewall) to drop
   inbound 80/443 — the tunnel only makes an outbound connection out, so nothing needs to be open for it to work,
   and leaving those ports open defeats the point of hiding the host.
+- Sharing the host with other projects? Deploy with
+  `docker compose -f docker-compose.yml -f docker-compose.tunnel-only.yml --profile tunnel up -d --build` instead --
+  it removes the frontend's host port publish entirely (verified: `docker compose ... config` shows no `ports:` key
+  for `frontend`, and the container comes up with nothing bound on the host side), so there's no port for it to
+  conflict with, no matter what else is running. The project name is also pinned (`name: bountieshunter` at the top
+  of `docker-compose.yml`), so its containers/network/volume names can't collide with another project even if it
+  happens to be checked out into a same-named directory. Before deploying anything new to a host you don't fully
+  know the state of, it's still worth checking directly rather than assuming: `docker ps -a` (existing
+  containers/project names), `docker network ls` (existing Compose projects), `sudo ss -ltnp` (ports already
+  listening on the host), and `free -h` / `docker stats` (memory headroom).
 
 ## License
 

@@ -1,0 +1,13 @@
+# Overrides docker-compose.yml's frontend port publish with nothing at all --
+# for a deploy that goes exclusively through the `tunnel` service (which
+# reaches `frontend` over the internal Docker network, not via a host port).
+# With this applied, bountieshunter doesn't bind a single host port, so it
+# cannot conflict with anything else already running on the machine,
+# regardless of what that is. `!reset` (not a plain empty list -- Compose
+# merges a plain `[]` as "nothing to say here", not "clear the base value",
+# so it silently keeps the base file's port mapping instead of removing it).
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.tunnel-only.yml --profile tunnel up -d --build
+services:
+  frontend:
+    ports: !reset []
