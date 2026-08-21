@@ -1,0 +1,8 @@
+node_modules
+dist
+backend/data
+backend/drizzle
+frontend/src/auto-imports.d.ts
+frontend/src/components.d.ts
+package-lock.json
+pnpm-lock.yaml

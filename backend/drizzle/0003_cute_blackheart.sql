@@ -1,0 +1,1 @@
+ALTER TABLE `programs` ADD `repository_url` text;

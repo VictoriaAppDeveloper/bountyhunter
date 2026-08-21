@@ -1,0 +1,21 @@
+**/node_modules
+**/dist
+**/dist-ssr
+**/*.tsbuildinfo
+**/.eslintcache
+.git
+.idea
+.vscode
+.claude
+
+# Secrets and local data must never end up in a build context / image layer.
+**/.env
+**/.env.*
+!**/.env.example
+backend/data
+*.db
+*.db-*
+
+*.log
+coverage
+__screenshots__

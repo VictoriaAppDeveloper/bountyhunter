@@ -1,0 +1,26 @@
+{
+  "name": "bountieshunter",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.1.2",
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"pnpm --filter backend run dev\" \"pnpm --filter frontend run dev\"",
+    "build": "pnpm --filter backend run build && pnpm --filter frontend run build",
+    "typecheck": "pnpm --filter backend run typecheck && pnpm --filter frontend run type-check",
+    "test": "pnpm --filter backend run test && pnpm --filter frontend run test",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "concurrently": "^10.0.5",
+    "eslint": "^10.8.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.10.0",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
+    "typescript-eslint": "^8.67.0"
+  }
+}
