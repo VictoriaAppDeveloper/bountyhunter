@@ -78,46 +78,37 @@ jobs:
       group: deploy
       cancel-in-progress: false
     steps:
-      # TEMPORARY -- remove once the SSH auth failure is resolved. Prints
-      # only the key's fingerprint (a hash), never the key material itself,
-      # so it's safe to leave in a public log. Compare this to
-      # `ssh-keygen -lf ~/.ssh/deploy_key` run on the server: if the two
-      # don't match, the DEPLOY_SSH_KEY secret's content doesn't actually
-      # match the key in authorized_keys there (the classic cause is a
-      # copy-paste that dropped/altered a character or line ending).
-      - name: Debug - print DEPLOY_SSH_KEY's fingerprint
-        run: |
-          echo "${{ secrets.DEPLOY_SSH_KEY }}" > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
-          ssh-keygen -lf /tmp/deploy_key || echo "ssh-keygen could not parse this as a private key at all"
-          rm -f /tmp/deploy_key
+      # Loads DEPLOY_SSH_KEY into a real ssh-agent for the `ssh` steps below
+      # to use, rather than going through a third-party action's own SSH
+      # client implementation. Deliberate: appleboy/ssh-action (Go's
+      # golang.org/x/crypto/ssh) failed to authenticate with this exact key
+      # against this exact server/user, even though the key's fingerprint
+      # matched, a raw TCP connect to :22 succeeded, and the very same key
+      # worked fine over a normal OpenSSH client (both locally and looped
+      # back on the server itself) -- pointing at an algorithm-negotiation
+      # difference between that library and this server's sshd, not the key
+      # or the network. Using the runner's own OpenSSH client here matches
+      # the client that's already proven to work.
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
-      # TEMPORARY -- raw TCP connectivity to port 22, no SSH involved at all.
-      # If this fails/times out, the connection is being dropped before it
-      # ever reaches sshd -- confirms a firewall (cloud-level or the host's
-      # own ufw/iptables) rather than an SSH-side config issue.
-      - name: Debug - raw TCP connectivity to DEPLOY_HOST:22
+      - name: Pin the server's host key
         run: |
-          if timeout 8 bash -c 'cat < /dev/null > /dev/tcp/${{ secrets.DEPLOY_HOST }}/22'; then
-            echo "TCP connect to port 22 SUCCEEDED"
+          mkdir -p ~/.ssh
+          if [ -n "${{ secrets.DEPLOY_HOST_FINGERPRINT }}" ]; then
+            echo "${{ secrets.DEPLOY_HOST_FINGERPRINT }}" >> ~/.ssh/known_hosts
           else
-            echo "TCP connect to port 22 FAILED/timed out -- blocked before reaching sshd, this is a firewall"
+            ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
           fi
 
       - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          # Optional but recommended: pin the host key instead of trusting
-          # whatever key the server presents on first connect. Get it with
-          # `ssh-keyscan -t ed25519 <host>` and store the full output line
-          # as this secret. Leaving it unset falls back to trust-on-connect.
-          fingerprint: ${{ secrets.DEPLOY_HOST_FINGERPRINT }}
-          script: |
+        run: |
+          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" '
             set -euo pipefail
             cd ~/bountyhunter
             git fetch origin main
             git reset --hard origin/main
             bash scripts/deploy.sh
+          '
