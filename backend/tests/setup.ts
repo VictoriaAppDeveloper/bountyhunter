@@ -5,7 +5,7 @@ import path from 'node:path'
 // Runs once per test file, before that file's own imports are evaluated --
 // `db/client.ts` reads DB_PATH at import time, so this has to land first.
 // Each file gets its own throwaway sqlite file (never the real dev/prod db).
-process.env.DB_PATH = path.join(mkdtempSync(path.join(tmpdir(), 'bountieshunter-test-')), 'test.db')
+process.env.DB_PATH = path.join(mkdtempSync(path.join(tmpdir(), 'bountyhunter-test-')), 'test.db')
 
 // Small on purpose -- summarize.test.ts exercises the daily-budget cutoff
 // without looping dozens of times. Read once at that module's import time,

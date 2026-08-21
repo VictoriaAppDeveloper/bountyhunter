@@ -4,7 +4,7 @@ import ru from './messages/ru'
 
 export type AppLocale = 'en' | 'ru'
 export const SUPPORTED_LOCALES: AppLocale[] = ['en', 'ru']
-const STORAGE_KEY = 'bountieshunter.locale'
+const STORAGE_KEY = 'bountyhunter.locale'
 
 function detectInitialLocale(): AppLocale {
   const saved = localStorage.getItem(STORAGE_KEY)

@@ -75,12 +75,39 @@ docker compose up -d --build
   `docker compose -f docker-compose.yml -f docker-compose.tunnel-only.yml --profile tunnel up -d --build` instead --
   it removes the frontend's host port publish entirely (verified: `docker compose ... config` shows no `ports:` key
   for `frontend`, and the container comes up with nothing bound on the host side), so there's no port for it to
-  conflict with, no matter what else is running. The project name is also pinned (`name: bountieshunter` at the top
+  conflict with, no matter what else is running. The project name is also pinned (`name: bountyhunter` at the top
   of `docker-compose.yml`), so its containers/network/volume names can't collide with another project even if it
   happens to be checked out into a same-named directory. Before deploying anything new to a host you don't fully
   know the state of, it's still worth checking directly rather than assuming: `docker ps -a` (existing
   containers/project names), `docker network ls` (existing Compose projects), `sudo ss -ltnp` (ports already
   listening on the host), and `free -h` / `docker stats` (memory headroom).
+
+## Deploying
+
+`.github/workflows/ci.yml`'s `deploy` job pushes to a server over SSH whenever something lands on `main` (and lint,
+typecheck, tests, the build, and the Docker image build have all passed first -- it `needs: [checks, docker]`, so a
+broken push never reaches the server). It runs `scripts/deploy.sh`, which rebuilds and restarts the stack via the
+tunnel-only override, waits for both containers to report healthy, and prunes dangling images left by the rebuild;
+it exits non-zero (failing the workflow) if either container doesn't go healthy within 60s.
+
+One-time setup on the server:
+
+```sh
+git clone <this repo> ~/bountyhunter && cd ~/bountyhunter
+cp backend/.env.example backend/.env   # fill in DEEPSEEK_API_KEY
+```
+
+Then add these repo secrets (Settings → Secrets and variables → Actions):
+
+| Secret                    | Value                                                                             |
+| ------------------------- | --------------------------------------------------------------------------------- |
+| `DEPLOY_HOST`             | server IP or hostname                                                             |
+| `DEPLOY_USER`             | SSH user (a dedicated deploy user in the `docker` group, not root, is worth it)   |
+| `DEPLOY_SSH_KEY`          | private key of a dedicated deploy keypair (`ssh-keygen -t ed25519 -f deploy_key`) |
+| `DEPLOY_HOST_FINGERPRINT` | optional; output of `ssh-keyscan -t ed25519 <host>`, pins the host key            |
+
+Add the deploy keypair's _public_ half to that user's `~/.ssh/authorized_keys` on the server. Trigger a deploy
+manually (without a new commit) from the Actions tab via `workflow_dispatch`.
 
 ## License
 

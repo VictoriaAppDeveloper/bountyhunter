@@ -1,8 +1,8 @@
 # Pins the Compose project name regardless of the clone directory's name --
 # otherwise it defaults to that directory's basename, and two projects
 # checked out into identically-named folders on the same host would collide
-# on container/network/volume names (`bountieshunter_internal` twice, etc).
-name: bountieshunter
+# on container/network/volume names (`bountyhunter_internal` twice, etc).
+name: bountyhunter
 
 services:
   backend:
