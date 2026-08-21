@@ -80,15 +80,10 @@ jobs:
     steps:
       # Loads DEPLOY_SSH_KEY into a real ssh-agent for the `ssh` steps below
       # to use, rather than going through a third-party action's own SSH
-      # client implementation. Deliberate: appleboy/ssh-action (Go's
-      # golang.org/x/crypto/ssh) failed to authenticate with this exact key
-      # against this exact server/user, even though the key's fingerprint
-      # matched, a raw TCP connect to :22 succeeded, and the very same key
-      # worked fine over a normal OpenSSH client (both locally and looped
-      # back on the server itself) -- pointing at an algorithm-negotiation
-      # difference between that library and this server's sshd, not the key
-      # or the network. Using the runner's own OpenSSH client here matches
-      # the client that's already proven to work.
+      # client implementation (switched off appleboy/ssh-action after it
+      # failed auth against this key/host/user for reasons that turned out
+      # inconclusive -- using the runner's own OpenSSH removes that as a
+      # variable entirely).
       - name: Set up SSH agent
         uses: webfactory/ssh-agent@v0.9.1
         with:
@@ -103,9 +98,20 @@ jobs:
             ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
           fi
 
+      # TEMPORARY -- the client here got a definitive "Permission denied
+      # (publickey,password)" (proof a full SSH exchange happened) while the
+      # server's own sshd log showed nothing at all for that same moment.
+      # Those two facts can't both be true unless this is connecting to a
+      # different address than the one being watched on the server -- prints
+      # exactly what DEPLOY_HOST resolves to from the runner's side, to
+      # compare directly against the server's own IP (`ip a` / `curl -4
+      # ifconfig.me` there).
+      - name: Debug - what DEPLOY_HOST actually resolves to
+        run: getent hosts "${{ secrets.DEPLOY_HOST }}" || echo "did not resolve as a hostname (already a raw IP?)"
+
       - name: Deploy over SSH
         run: |
-          ssh "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" '
+          ssh -v "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" '
             set -euo pipefail
             cd ~/bountyhunter
             git fetch origin main
