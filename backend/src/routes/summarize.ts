@@ -8,6 +8,25 @@ interface SummarizeBody {
   locale?: string
 }
 
+// Per-IP rate limiting alone doesn't cap total spend on a public demo -- 50
+// visitors each within their own limit still adds up. This is a hard ceiling
+// on real DeepSeek calls across *everyone*, reset once a day; in-memory is
+// fine here (a restart just grants a fresh budget window, no real downside).
+const DAILY_SUMMARY_LIMIT = Number(process.env.SUMMARIZE_DAILY_LIMIT ?? 50)
+let budgetDay = new Date().toISOString().slice(0, 10)
+let summariesToday = 0
+
+function tryConsumeDailyBudget(): boolean {
+  const today = new Date().toISOString().slice(0, 10)
+  if (today !== budgetDay) {
+    budgetDay = today
+    summariesToday = 0
+  }
+  if (summariesToday >= DAILY_SUMMARY_LIMIT) return false
+  summariesToday++
+  return true
+}
+
 export async function summarizeRoutes(app: FastifyInstance) {
   app.post(
     '/api/programs/:id/summarize',
@@ -36,6 +55,12 @@ export async function summarizeRoutes(app: FastifyInstance) {
 
       if (!process.env.DEEPSEEK_API_KEY) {
         return reply.code(503).send({ error: 'DEEPSEEK_API_KEY is not configured on the backend' })
+      }
+
+      // Checked after the cache/config short-circuits above so a cache hit or
+      // a missing key never eats into the budget -- only real billed calls do.
+      if (!tryConsumeDailyBudget()) {
+        return reply.code(503).send({ error: 'Daily AI summary budget reached -- try again tomorrow' })
       }
 
       try {

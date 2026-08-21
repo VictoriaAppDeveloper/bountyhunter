@@ -7,5 +7,10 @@ import path from 'node:path'
 // Each file gets its own throwaway sqlite file (never the real dev/prod db).
 process.env.DB_PATH = path.join(mkdtempSync(path.join(tmpdir(), 'bountieshunter-test-')), 'test.db')
 
+// Small on purpose -- summarize.test.ts exercises the daily-budget cutoff
+// without looping dozens of times. Read once at that module's import time,
+// same as DB_PATH above, so it has to be set before anything imports it.
+process.env.SUMMARIZE_DAILY_LIMIT = '3'
+
 const { runMigrations } = await import('../src/db/migrate.js')
 runMigrations()
