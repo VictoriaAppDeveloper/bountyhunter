@@ -68,9 +68,9 @@ docker compose up -d --build
 - To demo without exposing the host's real IP (no domain needed): `docker compose --profile tunnel up -d` also
   starts a Cloudflare Quick Tunnel; grab the generated `https://*.trycloudflare.com` URL from
   `docker compose logs tunnel`. It changes if that container restarts, and it's meant for light demo traffic, not
-  sustained production load. If you use it, firewall the host itself (e.g. Hetzner's Cloud Firewall) to drop
-  inbound 80/443 — the tunnel only makes an outbound connection out, so nothing needs to be open for it to work,
-  and leaving those ports open defeats the point of hiding the host.
+  sustained production load. If you use it, firewall the host itself (a cloud firewall in front of the VM, or
+  `ufw`/`iptables` on it) to drop inbound 80/443 — the tunnel only makes an outbound connection out, so nothing
+  needs to be open for it to work, and leaving those ports open defeats the point of hiding the host.
 - Sharing the host with other projects? Deploy with
   `docker compose -f docker-compose.yml -f docker-compose.tunnel-only.yml --profile tunnel up -d --build` instead --
   it removes the frontend's host port publish entirely (verified: `docker compose ... config` shows no `ports:` key

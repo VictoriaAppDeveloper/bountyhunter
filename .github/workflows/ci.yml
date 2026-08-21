@@ -63,7 +63,7 @@ jobs:
         run: docker compose build
 
   deploy:
-    name: Deploy to Hetzner
+    name: Deploy to a server
     needs: [checks, docker]
     # Only for an actual landing on main -- never for a PR (`needs` already
     # implies checks/docker passed, but this also blocks PR runs from ever
