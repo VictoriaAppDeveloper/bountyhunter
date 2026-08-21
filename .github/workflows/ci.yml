@@ -78,6 +78,20 @@ jobs:
       group: deploy
       cancel-in-progress: false
     steps:
+      # TEMPORARY -- remove once the SSH auth failure is resolved. Prints
+      # only the key's fingerprint (a hash), never the key material itself,
+      # so it's safe to leave in a public log. Compare this to
+      # `ssh-keygen -lf ~/.ssh/deploy_key` run on the server: if the two
+      # don't match, the DEPLOY_SSH_KEY secret's content doesn't actually
+      # match the key in authorized_keys there (the classic cause is a
+      # copy-paste that dropped/altered a character or line ending).
+      - name: Debug - print DEPLOY_SSH_KEY's fingerprint
+        run: |
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          ssh-keygen -lf /tmp/deploy_key || echo "ssh-keygen could not parse this as a private key at all"
+          rm -f /tmp/deploy_key
+
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1
         with:
